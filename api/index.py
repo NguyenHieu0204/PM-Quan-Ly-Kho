@@ -67,6 +67,8 @@ def register():
         return jsonify({'status': 'ok'})
     except sqlite3.IntegrityError:
         return jsonify({'status': 'error', 'message': 'Username exists'}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         conn.close()
 

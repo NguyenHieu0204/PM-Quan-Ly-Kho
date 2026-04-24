@@ -511,6 +511,8 @@ class RegisterFrame(ctk.CTkFrame):
             self.master.show_login()
         except sqlite3.IntegrityError:
             messagebox.showerror("Lỗi", "Tên đăng nhập đã tồn tại!")
+        except Exception as e:
+            messagebox.showerror("Lỗi hệ thống", f"Lỗi không xác định: {str(e)}")
         finally:
             conn.close()
 
