@@ -10,6 +10,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'dev_key_only_for_local_use_123')
 # Base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'inventory.db')
+FIXED_INVITE_CODE = os.getenv('INVITE_CODE', 'KHO_2026')
 
 def login_required(f):
     def wrapper(*args, **kwargs):
@@ -46,23 +47,17 @@ def login():
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     data = request.json
+    # Check invite code
+    if data.get('invite_code') != FIXED_INVITE_CODE:
+        return jsonify({'status': 'error', 'message': 'Invalid invite code'}), 400
+        
     conn = get_db()
     cursor = conn.cursor()
-    
-    # Check invite code
-    cursor.execute("SELECT * FROM invite_codes WHERE code = ? AND is_used = 0", (data['invite_code'],))
-    code_data = cursor.fetchone()
-    if not code_data:
-        conn.close()
-        return jsonify({'status': 'error', 'message': 'Invalid or used invite code'}), 400
         
     try:
         pw_hash = generate_password_hash(data['password'])
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", 
                       (data['username'], pw_hash))
-        user_id = cursor.lastrowid
-        cursor.execute("UPDATE invite_codes SET is_used = 1, used_by = ? WHERE code = ?", 
-                      (user_id, data['invite_code']))
         conn.commit()
         return jsonify({'status': 'ok'})
     except sqlite3.IntegrityError:

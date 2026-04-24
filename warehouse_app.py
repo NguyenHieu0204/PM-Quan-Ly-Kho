@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DB_PATH = os.path.join(os.path.dirname(__file__), 'inventory.db')
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
+FIXED_INVITE_CODE = "KHO_2026"
 
 class WarehouseApp(ctk.CTk):
     def __init__(self):
@@ -490,25 +491,16 @@ class RegisterFrame(ctk.CTkFrame):
             messagebox.showwarning("Cảnh báo", "Vui lòng nhập đầy đủ thông tin!")
             return
 
+        if invite_code != FIXED_INVITE_CODE:
+            messagebox.showerror("Lỗi", "Mã mời không chính xác!")
+            return
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Check if code is valid and unused
-        cursor.execute("SELECT * FROM invite_codes WHERE code = ? AND is_used = 0", (invite_code,))
-        code_data = cursor.fetchone()
-        
-        if not code_data:
-            conn.close()
-            messagebox.showerror("Lỗi", "Mã mời không chính xác hoặc đã được sử dụng!")
-            return
 
         try:
             hashed_pw = generate_password_hash(password)
             cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed_pw))
-            user_id = cursor.lastrowid
-            
-            # Mark code as used
-            cursor.execute("UPDATE invite_codes SET is_used = 1, used_by = ? WHERE code = ?", (user_id, invite_code))
             
             conn.commit()
             messagebox.showinfo("Thành công", "Đăng ký thành công! Hãy đăng nhập.")
