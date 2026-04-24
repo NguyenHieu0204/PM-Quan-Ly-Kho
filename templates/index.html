@@ -412,6 +412,210 @@
         </div>
     </div>
 
+    <script>
+        let editingId = null;
+
+        function toggleAuth(isReg) {
+            document.getElementById('login-box').style.display = isReg ? 'none' : 'block';
+            document.getElementById('register-box').style.display = isReg ? 'block' : 'none';
+        }
+
+        async function login() {
+            try {
+                const data = {
+                    username: document.getElementById('login-username').value,
+                    password: document.getElementById('login-password').value
+                };
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    checkAuth();
+                } else {
+                    const err = await res.json();
+                    alert('Lỗi đăng nhập: ' + (err.message || 'Sai tài khoản hoặc mật khẩu!'));
+                }
+            } catch (e) {
+                alert('Lỗi kết nối server: ' + e.message);
+            }
+        }
+
+        async function register() {
+            try {
+                const data = {
+                    username: document.getElementById('reg-username').value,
+                    password: document.getElementById('reg-password').value,
+                    invite_code: document.getElementById('reg-invite').value
+                };
+
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert('Đăng ký thành công! Hãy đăng nhập.');
+                    toggleAuth(false);
+                } else {
+                    alert('Lỗi đăng ký: ' + result.message);
+                }
+            } catch (e) {
+                alert('Lỗi hệ thống Web: ' + e.message);
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    document.getElementById('main-container').style.display = 'block';
+                    document.getElementById('current-user-display').textContent = 'Chào, ' + data.username;
+                    loadProducts();
+                } else {
+                    document.getElementById('auth-overlay').style.display = 'flex';
+                    document.getElementById('main-container').style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Auth check error:', e);
+            }
+        }
+
+        async function fetchSummary() {
+            try {
+                const res = await fetch('/api/summary');
+                if (!res.ok) return;
+                const data = await res.json();
+                document.getElementById('total-products').textContent = data.total_products;
+                document.getElementById('total-value').textContent = data.total_value.toLocaleString() + '₫';
+                document.getElementById('total-profit').textContent = data.total_profit.toLocaleString() + '₫';
+            } catch (e) {
+                console.error('Summary fetch error:', e);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const search = document.getElementById('search').value;
+                const res = await fetch(`/api/products?search=${search}`);
+                if (!res.ok) return;
+                const products = await res.json();
+                const list = document.getElementById('product-list');
+                list.innerHTML = '';
+
+                products.forEach(p => {
+                    const profit = p.selling_price - p.imported_price;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${p.sku}</td>
+                        <td>${p.name}</td>
+                        <td>${p.category}</td>
+                        <td>${p.imported_price.toLocaleString()}</td>
+                        <td>${p.selling_price.toLocaleString()}</td>
+                        <td><span class="badge ${profit >= 0 ? 'badge-success' : 'badge-danger'}">${profit.toLocaleString()}</span></td>
+                        <td>${p.quantity}</td>
+                        <td class="actions">
+                            <button class="btn-edit" onclick='startEdit(${JSON.stringify(p)})'>Sửa</button>
+                            <button class="btn-delete" onclick="deleteProduct(${p.id})">Xóa</button>
+                        </td>
+                    `;
+                    list.appendChild(tr);
+                });
+                fetchSummary();
+            } catch (e) {
+                console.error('Load products error:', e);
+            }
+        }
+
+        async function saveProduct() {
+            try {
+                const data = {
+                    sku: document.getElementById('sku').value,
+                    name: document.getElementById('name').value,
+                    category: document.getElementById('category').value,
+                    imported_price: document.getElementById('imported_price').value,
+                    selling_price: document.getElementById('selling_price').value,
+                    wholesale_price: document.getElementById('wholesale_price').value,
+                    retail_price: document.getElementById('retail_price').value,
+                    quantity: document.getElementById('quantity').value
+                };
+
+                const method = editingId ? 'PUT' : 'POST';
+                const url = editingId ? `/api/products/${editingId}` : '/api/products';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    resetForm();
+                    loadProducts();
+                } else {
+                    const error = await res.json();
+                    alert('Lỗi thao tác: ' + error.message);
+                }
+            } catch (e) {
+                alert('Lỗi kết nối server: ' + e.message);
+            }
+        }
+
+        function startEdit(p) {
+            editingId = p.id;
+            document.getElementById('sku').value = p.sku;
+            document.getElementById('name').value = p.name;
+            document.getElementById('category').value = p.category;
+            document.getElementById('imported_price').value = p.imported_price;
+            document.getElementById('selling_price').value = p.selling_price;
+            document.getElementById('wholesale_price').value = p.wholesale_price;
+            document.getElementById('retail_price').value = p.retail_price;
+            document.getElementById('quantity').value = p.quantity;
+
+            document.getElementById('form-action-title').textContent = 'Sửa Sản phẩm (ID: ' + p.id + ')';
+            document.getElementById('save-btn').textContent = 'Cập nhật';
+            document.getElementById('cancel-btn').style.display = 'block';
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('sku').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('imported_price').value = '';
+            document.getElementById('selling_price').value = '';
+            document.getElementById('wholesale_price').value = '';
+            document.getElementById('retail_price').value = '';
+            document.getElementById('quantity').value = '';
+
+            document.getElementById('form-action-title').textContent = 'Hành động Sản phẩm';
+            document.getElementById('save-btn').textContent = 'Lưu Sản phẩm';
+            document.getElementById('cancel-btn').style.display = 'none';
+        }
+
+        async function deleteProduct(id) {
+            try {
+                if (confirm('Bạn có chắc chắn muốn xóa?')) {
+                    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                    if (res.ok) loadProducts();
+                }
+            } catch (e) {
+                alert('Lỗi khi xóa: ' + e.message);
+            }
+        }
+
+        window.onload = checkAuth;
     </script>
 </body>
 
