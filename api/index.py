@@ -5,7 +5,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, template_folder='../templates')
-app.secret_key = 'warehouse_secret_key_2026' # Should be env variable in production
+app.secret_key = os.getenv('SECRET_KEY', 'dev_key_only_for_local_use_123')
 
 # Base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
