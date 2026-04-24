@@ -9,7 +9,8 @@ from tkcalendar import Calendar
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
 
 # Configuration
 DB_PATH = os.path.join(os.path.dirname(__file__), 'inventory.db')
