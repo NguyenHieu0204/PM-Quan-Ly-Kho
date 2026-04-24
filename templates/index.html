@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Pro Web - Quản lý Kho</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            background-image: radial-gradient(circle at top right, #1e293b, transparent), 
+                              radial-gradient(circle at bottom left, #1e1b4b, transparent);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            background: linear-gradient(to right, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Dashboard Cards */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card h3 {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .card .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .card.blue .value { color: #60a5fa; }
+        .card.green .value { color: #34d399; }
+        .card.orange .value { color: #fbbf24; }
+
+        /* Form Section */
+        .form-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            border-radius: 1.25rem;
+            margin-bottom: 3rem;
+        }
+
+        .form-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .grid-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        input {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Table Section */
+        .table-container {
+            overflow-x: auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.25rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.3);
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .badge-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+        .actions button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color 0.2s;
+            margin-right: 0.5rem;
+        }
+
+        .actions .btn-delete:hover { color: var(--danger); }
+        .actions .btn-edit:hover { color: var(--primary); }
+
+        .search-bar {
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .grid-form { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Warehouse Pro Web</h1>
+        
+        <div class="dashboard">
+            <div class="card blue">
+                <h3>Tổng mặt hàng</h3>
+                <div class="value" id="total-products">0</div>
+            </div>
+            <div class="card green">
+                <h3>Giá trị tồn kho</h3>
+                <div class="value" id="total-value">0₫</div>
+            </div>
+            <div class="card orange">
+                <h3>Lãi dự kiến</h3>
+                <div class="value" id="total-profit">0₫</div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Hành động Sản phẩm</h2>
+            <div class="grid-form">
+                <input type="text" id="sku" placeholder="Mã hàng (SKU)">
+                <input type="text" id="name" placeholder="Tên hàng">
+                <input type="text" id="category" placeholder="Ngành hàng">
+                <input type="number" id="imported_price" placeholder="Giá nhập">
+                <input type="number" id="selling_price" placeholder="Giá bán cơ sở">
+                <input type="number" id="wholesale_price" placeholder="Giá bán sỉ">
+                <input type="number" id="retail_price" placeholder="Giá bán lẻ">
+                <input type="number" id="quantity" placeholder="Số lượng">
+                <button class="btn btn-primary" onclick="saveProduct()">Lưu Sản phẩm</button>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="search" placeholder="Tìm kiếm..." style="width:100%" onkeyup="loadProducts()">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mã hàng</th>
+                        <th>Tên hàng</th>
+                        <th>Ngành</th>
+                        <th>Giá nhập</th>
+                        <th>Giá bán</th>
+                        <th>Lãi</th>
+                        <th>SL</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="product-list">
+                    <!-- Products will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let editingId = null;
+
+        async function fetchSummary() {
+            const res = await fetch('/api/summary');
+            const data = await res.json();
+            document.getElementById('total-products').textContent = data.total_products;
+            document.getElementById('total-value').textContent = data.total_value.toLocaleString() + '₫';
+            document.getElementById('total-profit').textContent = data.total_profit.toLocaleString() + '₫';
+        }
+
+        async function loadProducts() {
+            const search = document.getElementById('search').value;
+            const res = await fetch(`/api/products?search=${search}`);
+            const products = await res.json();
+            const list = document.getElementById('product-list');
+            list.innerHTML = '';
+
+            products.forEach(p => {
+                const profit = p.selling_price - p.imported_price;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.sku}</td>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>${p.imported_price.toLocaleString()}</td>
+                    <td>${p.selling_price.toLocaleString()}</td>
+                    <td><span class="badge ${profit >= 0 ? 'badge-success' : 'badge-danger'}">${profit.toLocaleString()}</span></td>
+                    <td>${p.quantity}</td>
+                    <td class="actions">
+                        <button class="btn-edit" onclick='startEdit(${JSON.stringify(p)})'>Sửa</button>
+                        <button class="btn-delete" onclick="deleteProduct(${p.id})">Xóa</button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+            fetchSummary();
+        }
+
+        async function saveProduct() {
+            const data = {
+                sku: document.getElementById('sku').value,
+                name: document.getElementById('name').value,
+                category: document.getElementById('category').value,
+                imported_price: document.getElementById('imported_price').value,
+                selling_price: document.getElementById('selling_price').value,
+                wholesale_price: document.getElementById('wholesale_price').value,
+                retail_price: document.getElementById('retail_price').value,
+                quantity: document.getElementById('quantity').value
+            };
+
+            const method = editingId ? 'PUT' : 'POST';
+            const url = editingId ? `/api/products/${editingId}` : '/api/products';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                resetForm();
+                loadProducts();
+                alert('Thành công!');
+            } else {
+                const error = await res.json();
+                alert('Lỗi: ' + error.message);
+            }
+        }
+
+        function startEdit(p) {
+            editingId = p.id;
+            document.getElementById('sku').value = p.sku;
+            document.getElementById('name').value = p.name;
+            document.getElementById('category').value = p.category;
+            document.getElementById('imported_price').value = p.imported_price;
+            document.getElementById('selling_price').value = p.selling_price;
+            document.getElementById('wholesale_price').value = p.wholesale_price;
+            document.getElementById('retail_price').value = p.retail_price;
+            document.getElementById('quantity').value = p.quantity;
+            document.querySelector('.form-section h2').textContent = 'Sửa Sản phẩm (ID: ' + p.id + ')';
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('sku').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('imported_price').value = '';
+            document.getElementById('selling_price').value = '';
+            document.getElementById('wholesale_price').value = '';
+            document.getElementById('retail_price').value = '';
+            document.getElementById('quantity').value = '';
+            document.querySelector('.form-section h2').textContent = 'Hành động Sản phẩm';
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa?')) {
+                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                if (res.ok) loadProducts();
+            }
+        }
+
+        window.onload = loadProducts;
+    </script>
+</body>
+</html>
