@@ -15,7 +15,7 @@ load_dotenv()
 DB_PATH = os.path.join(os.path.dirname(__file__), 'inventory.db')
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
-FIXED_INVITE_CODE = os.getenv("INVITE_CODE", "KHO_2026")
+FIXED_INVITE_CODE = os.getenv("INVITE_CODE", "")
 
 class WarehouseApp(ctk.CTk):
     def __init__(self):

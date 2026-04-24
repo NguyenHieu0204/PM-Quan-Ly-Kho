@@ -13,7 +13,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'dev_key_only_for_local_use_123')
 # Base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'inventory.db')
-FIXED_INVITE_CODE = os.getenv('INVITE_CODE', 'KHO_2026')
+FIXED_INVITE_CODE = os.getenv('INVITE_CODE', '')
 
 def login_required(f):
     def wrapper(*args, **kwargs):
