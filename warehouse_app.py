@@ -183,6 +183,14 @@ class WarehouseApp(ctk.CTk):
                 date TEXT
             )
         ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                password_hash TEXT,
+                role TEXT DEFAULT 'user'
+            )
+        ''')
         conn.commit()
         conn.close()
 

@@ -25,7 +25,37 @@ def login_required(f):
     wrapper.__name__ = f.__name__
     return wrapper
 
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT UNIQUE,
+            name TEXT,
+            category TEXT,
+            imported_price REAL,
+            selling_price REAL,
+            wholesale_price REAL,
+            retail_price REAL,
+            quantity INTEGER,
+            date TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password_hash TEXT,
+            role TEXT DEFAULT 'user'
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 def get_db():
+    if not os.path.exists(DB_PATH):
+        init_db()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
