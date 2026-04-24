@@ -7,12 +7,15 @@ from datetime import datetime
 from tkinter import messagebox, filedialog
 from tkcalendar import Calendar
 from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
 DB_PATH = os.path.join(os.path.dirname(__file__), 'inventory.db')
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
-FIXED_INVITE_CODE = "KHO_2026"
+FIXED_INVITE_CODE = os.getenv("INVITE_CODE", "KHO_2026")
 
 class WarehouseApp(ctk.CTk):
     def __init__(self):
