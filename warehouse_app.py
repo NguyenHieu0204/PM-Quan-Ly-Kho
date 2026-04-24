@@ -6,6 +6,7 @@ import shutil
 from datetime import datetime
 from tkinter import messagebox, filedialog
 from tkcalendar import Calendar
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Configuration
 DB_PATH = os.path.join(os.path.dirname(__file__), 'inventory.db')
@@ -19,9 +20,28 @@ class WarehouseApp(ctk.CTk):
         self.title("Warehouse Pro - Quản lý Kho hàng")
         self.geometry("1100x850")
         
-        # Database setup
+        self.current_user = None
         self.init_db()
+        self.show_login()
 
+    def show_login(self):
+        self.clear_window()
+        LoginFrame(self)
+
+    def show_register(self):
+        self.clear_window()
+        RegisterFrame(self)
+
+    def show_dashboard(self, user):
+        self.current_user = user
+        self.clear_window()
+        self.setup_dashboard()
+
+    def clear_window(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+
+    def setup_dashboard(self):
         self.editing_id = None
         self.current_search = None
 
@@ -392,6 +412,111 @@ class WarehouseApp(ctk.CTk):
         if file_path:
             shutil.copy2(DB_PATH, file_path)
             messagebox.showinfo("Thành công", "Đã sao lưu dữ liệu!")
+
+class LoginFrame(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, fg_color="transparent")
+        self.pack(expand=True)
+
+        self.title_label = ctk.CTkLabel(self, text="Warehouse Pro", font=ctk.CTkFont(size=32, weight="bold"))
+        self.title_label.pack(pady=(0, 10))
+        
+        self.subtitle_label = ctk.CTkLabel(self, text="Đăng nhập để vào kho", font=ctk.CTkFont(size=14), text_color="gray")
+        self.subtitle_label.pack(pady=(0, 30))
+
+        self.username_entry = ctk.CTkEntry(self, placeholder_text="Tên đăng nhập", width=300, height=45)
+        self.username_entry.pack(pady=10)
+
+        self.password_entry = ctk.CTkEntry(self, placeholder_text="Mật khẩu", width=300, height=45, show="*")
+        self.password_entry.pack(pady=10)
+
+        self.login_btn = ctk.CTkButton(self, text="Đăng nhập", width=300, height=45, font=ctk.CTkFont(weight="bold"), command=self.login)
+        self.login_btn.pack(pady=20)
+
+        self.register_btn = ctk.CTkButton(self, text="Chưa có tài khoản? Đăng ký", fg_color="transparent", hover_color="#334155", command=master.show_register)
+        self.register_btn.pack()
+
+    def login(self):
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+
+        if not username or not password:
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập đầy đủ thông tin!")
+            return
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user[2], password):
+            self.master.show_dashboard(user)
+        else:
+            messagebox.showerror("Lỗi", "Sai tên đăng nhập hoặc mật khẩu!")
+
+class RegisterFrame(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, fg_color="transparent")
+        self.pack(expand=True)
+
+        self.title_label = ctk.CTkLabel(self, text="Đăng ký tài khoản", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label.pack(pady=(0, 10))
+        
+        self.subtitle_label = ctk.CTkLabel(self, text="Cần mã mời để đăng ký", font=ctk.CTkFont(size=14), text_color="gray")
+        self.subtitle_label.pack(pady=(0, 20))
+
+        self.username_entry = ctk.CTkEntry(self, placeholder_text="Tên đăng nhập mới", width=300, height=45)
+        self.username_entry.pack(pady=10)
+
+        self.password_entry = ctk.CTkEntry(self, placeholder_text="Mật khẩu mới", width=300, height=45, show="*")
+        self.password_entry.pack(pady=10)
+
+        self.invite_entry = ctk.CTkEntry(self, placeholder_text="Mã mời (Invitation Code)", width=300, height=45)
+        self.invite_entry.pack(pady=10)
+
+        self.register_btn = ctk.CTkButton(self, text="Đăng ký ngay", width=300, height=45, font=ctk.CTkFont(weight="bold"), command=self.register)
+        self.register_btn.pack(pady=20)
+
+        self.back_btn = ctk.CTkButton(self, text="Đã có tài khoản? Đăng nhập", fg_color="transparent", hover_color="#334155", command=master.show_login)
+        self.back_btn.pack()
+
+    def register(self):
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+        invite_code = self.invite_entry.get().strip()
+
+        if not username or not password or not invite_code:
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập đầy đủ thông tin!")
+            return
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if code is valid and unused
+        cursor.execute("SELECT * FROM invite_codes WHERE code = ? AND is_used = 0", (invite_code,))
+        code_data = cursor.fetchone()
+        
+        if not code_data:
+            conn.close()
+            messagebox.showerror("Lỗi", "Mã mời không chính xác hoặc đã được sử dụng!")
+            return
+
+        try:
+            hashed_pw = generate_password_hash(password)
+            cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed_pw))
+            user_id = cursor.lastrowid
+            
+            # Mark code as used
+            cursor.execute("UPDATE invite_codes SET is_used = 1, used_by = ? WHERE code = ?", (user_id, invite_code))
+            
+            conn.commit()
+            messagebox.showinfo("Thành công", "Đăng ký thành công! Hãy đăng nhập.")
+            self.master.show_login()
+        except sqlite3.IntegrityError:
+            messagebox.showerror("Lỗi", "Tên đăng nhập đã tồn tại!")
+        finally:
+            conn.close()
 
 if __name__ == "__main__":
     app = WarehouseApp()

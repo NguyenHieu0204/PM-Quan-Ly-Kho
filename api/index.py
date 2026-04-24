@@ -1,13 +1,23 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 import sqlite3
 import os
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, template_folder='../templates')
+app.secret_key = 'warehouse_secret_key_2026' # Should be env variable in production
 
 # Base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'inventory.db')
+
+def login_required(f):
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    wrapper.__name__ = f.__name__
+    return wrapper
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -18,7 +28,61 @@ def get_db():
 def index():
     return render_template('index.html')
 
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (data['username'],))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if user and check_password_hash(user['password_hash'], data['password']):
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        return jsonify({'status': 'ok', 'user': {'username': user['username']}})
+    return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Check invite code
+    cursor.execute("SELECT * FROM invite_codes WHERE code = ? AND is_used = 0", (data['invite_code'],))
+    code_data = cursor.fetchone()
+    if not code_data:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'Invalid or used invite code'}), 400
+        
+    try:
+        pw_hash = generate_password_hash(data['password'])
+        cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", 
+                      (data['username'], pw_hash))
+        user_id = cursor.lastrowid
+        cursor.execute("UPDATE invite_codes SET is_used = 1, used_by = ? WHERE code = ?", 
+                      (user_id, data['invite_code']))
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    except sqlite3.IntegrityError:
+        return jsonify({'status': 'error', 'message': 'Username exists'}), 400
+    finally:
+        conn.close()
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({'status': 'ok'})
+
+@app.route('/api/auth/me', methods=['GET'])
+def me():
+    if 'user_id' in session:
+        return jsonify({'status': 'ok', 'username': session['username']})
+    return jsonify({'status': 'error'}), 401
+
 @app.route('/api/products', methods=['GET'])
+@login_required
 def get_products():
     search = request.args.get('search', '').strip()
     conn = get_db()
@@ -37,6 +101,7 @@ def get_products():
     return jsonify(rows)
 
 @app.route('/api/products', methods=['POST'])
+@login_required
 def add_product():
     data = request.json
     conn = get_db()
@@ -58,6 +123,7 @@ def add_product():
         conn.close()
 
 @app.route('/api/products/<int:id>', methods=['PUT'])
+@login_required
 def update_product(id):
     data = request.json
     conn = get_db()
@@ -79,6 +145,7 @@ def update_product(id):
         conn.close()
 
 @app.route('/api/products/<int:id>', methods=['DELETE'])
+@login_required
 def delete_product(id):
     conn = get_db()
     cursor = conn.cursor()
@@ -88,6 +155,7 @@ def delete_product(id):
     return jsonify({'status': 'ok', 'message': 'Product deleted successfully'})
 
 @app.route('/api/summary', methods=['GET'])
+@login_required
 def get_summary():
     conn = get_db()
     cursor = conn.cursor()

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,13 +31,15 @@
             color: var(--text-main);
             min-height: 100vh;
             padding: 2rem;
-            background-image: radial-gradient(circle at top right, #1e293b, transparent), 
-                              radial-gradient(circle at bottom left, #1e1b4b, transparent);
+            background-image: radial-gradient(circle at top right, #1e293b, transparent),
+                radial-gradient(circle at bottom left, #1e1b4b, transparent);
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            display: none;
+            /* Hidden by default until login */
         }
 
         h1 {
@@ -45,8 +48,66 @@
             margin-bottom: 2rem;
             text-align: center;
             background: linear-gradient(to right, #60a5fa, #a855f7);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        /* Auth Overlay */
+        #auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-card h2 {
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .auth-card p {
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .auth-form input {
+            width: 100%;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .auth-toggle span {
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 600;
         }
 
         /* Dashboard Cards */
@@ -86,9 +147,17 @@
             font-weight: 700;
         }
 
-        .card.blue .value { color: #60a5fa; }
-        .card.green .value { color: #34d399; }
-        .card.orange .value { color: #fbbf24; }
+        .card.blue .value {
+            color: #60a5fa;
+        }
+
+        .card.green .value {
+            color: #34d399;
+        }
+
+        .card.orange .value {
+            color: #fbbf24;
+        }
 
         /* Form Section */
         .form-section {
@@ -133,16 +202,23 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-block;
         }
 
         .btn-primary {
             background: var(--primary);
             color: white;
+            width: 100%;
         }
 
         .btn-primary:hover {
             opacity: 0.9;
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: white;
         }
 
         /* Table Section */
@@ -184,8 +260,15 @@
             font-weight: 700;
         }
 
-        .badge-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-        .badge-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
 
         .actions button {
             background: none;
@@ -197,25 +280,78 @@
             margin-right: 0.5rem;
         }
 
-        .actions .btn-delete:hover { color: var(--danger); }
-        .actions .btn-edit:hover { color: var(--primary); }
+        .actions .btn-delete:hover {
+            color: var(--danger);
+        }
 
-        .search-bar {
+        .actions .btn-edit:hover {
+            color: var(--primary);
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 1rem;
-            width: 100%;
-            max-width: 400px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         @media (max-width: 768px) {
-            body { padding: 1rem; }
-            .grid-form { grid-template-columns: 1fr; }
+            body {
+                padding: 1rem;
+            }
+
+            .grid-form {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
+    <div id="auth-overlay">
+        <div class="auth-card" id="login-box">
+            <h2>Chào mừng trở lại</h2>
+            <p>Đăng nhập để tiếp quản kho hàng của bạn</p>
+            <div class="auth-form">
+                <input type="text" id="login-username" placeholder="Tên đăng nhập">
+                <input type="password" id="login-password" placeholder="Mật khẩu">
+                <button class="btn btn-primary" onclick="login()">Đăng nhập</button>
+            </div>
+            <div class="auth-toggle">
+                Chưa có tài khoản? <span onclick="toggleAuth(true)">Đăng ký ngay</span>
+            </div>
+        </div>
+
+        <div class="auth-card" id="register-box" style="display:none">
+            <h2>Tạo tài khoản mới</h2>
+            <p>Sử dụng mã mời để tham gia Warehouse Pro</p>
+            <div class="auth-form">
+                <input type="text" id="reg-username" placeholder="Tên đăng nhập mới">
+                <input type="password" id="reg-password" placeholder="Mật khẩu mới">
+                <input type="text" id="reg-invite" placeholder="Mã mời (Invitation Code)">
+                <button class="btn btn-primary" onclick="register()">Đăng ký tài khoản</button>
+            </div>
+            <div class="auth-toggle">
+                Đã có tài khoản? <span onclick="toggleAuth(false)">Đăng nhập</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="main-container">
+        <div class="user-info" style="justify-content: flex-end; margin-bottom: 1rem;">
+            <span id="current-user-display" style="color: var(--text-muted)"></span>
+            <button class="btn btn-secondary" onclick="logout()" style="padding: 0.4rem 1rem; font-size: 0.8rem;">Đăng
+                xuất</button>
+        </div>
+
         <h1>Warehouse Pro Web</h1>
-        
+
         <div class="dashboard">
             <div class="card blue">
                 <h3>Tổng mặt hàng</h3>
@@ -232,7 +368,7 @@
         </div>
 
         <div class="form-section">
-            <h2>Hành động Sản phẩm</h2>
+            <h2 id="form-action-title">Hành động Sản phẩm</h2>
             <div class="grid-form">
                 <input type="text" id="sku" placeholder="Mã hàng (SKU)">
                 <input type="text" id="name" placeholder="Tên hàng">
@@ -242,12 +378,17 @@
                 <input type="number" id="wholesale_price" placeholder="Giá bán sỉ">
                 <input type="number" id="retail_price" placeholder="Giá bán lẻ">
                 <input type="number" id="quantity" placeholder="Số lượng">
-                <button class="btn btn-primary" onclick="saveProduct()">Lưu Sản phẩm</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="save-btn" onclick="saveProduct()">Lưu Sản phẩm</button>
+                    <button class="btn btn-secondary" id="cancel-btn" style="display:none"
+                        onclick="resetForm()">Hủy</button>
+                </div>
             </div>
         </div>
 
-        <div class="search-bar">
-            <input type="text" id="search" placeholder="Tìm kiếm..." style="width:100%" onkeyup="loadProducts()">
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Tìm kiếm sản phẩm..." style="width:100%; max-width: 400px;"
+                onkeyup="loadProducts()">
         </div>
 
         <div class="table-container">
@@ -274,8 +415,70 @@
     <script>
         let editingId = null;
 
+        function toggleAuth(isReg) {
+            document.getElementById('login-box').style.display = isReg ? 'none' : 'block';
+            document.getElementById('register-box').style.display = isReg ? 'block' : 'none';
+        }
+
+        async function login() {
+            const data = {
+                username: document.getElementById('login-username').value,
+                password: document.getElementById('login-password').value
+            };
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                checkAuth();
+            } else {
+                alert('Sai tài khoản hoặc mật khẩu!');
+            }
+        }
+
+        async function register() {
+            const data = {
+                username: document.getElementById('reg-username').value,
+                password: document.getElementById('reg-password').value,
+                invite_code: document.getElementById('reg-invite').value
+            };
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                alert('Đăng ký thành công! Hãy đăng nhập.');
+                toggleAuth(false);
+            } else {
+                const err = await res.json();
+                alert('Lỗi: ' + err.message);
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        async function checkAuth() {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('main-container').style.display = 'block';
+                document.getElementById('current-user-display').textContent = 'Chào, ' + data.username;
+                loadProducts();
+            } else {
+                document.getElementById('auth-overlay').style.display = 'flex';
+                document.getElementById('main-container').style.display = 'none';
+            }
+        }
+
         async function fetchSummary() {
             const res = await fetch('/api/summary');
+            if (!res.ok) return;
             const data = await res.json();
             document.getElementById('total-products').textContent = data.total_products;
             document.getElementById('total-value').textContent = data.total_value.toLocaleString() + '₫';
@@ -285,6 +488,7 @@
         async function loadProducts() {
             const search = document.getElementById('search').value;
             const res = await fetch(`/api/products?search=${search}`);
+            if (!res.ok) return;
             const products = await res.json();
             const list = document.getElementById('product-list');
             list.innerHTML = '';
@@ -334,7 +538,6 @@
             if (res.ok) {
                 resetForm();
                 loadProducts();
-                alert('Thành công!');
             } else {
                 const error = await res.json();
                 alert('Lỗi: ' + error.message);
@@ -351,7 +554,10 @@
             document.getElementById('wholesale_price').value = p.wholesale_price;
             document.getElementById('retail_price').value = p.retail_price;
             document.getElementById('quantity').value = p.quantity;
-            document.querySelector('.form-section h2').textContent = 'Sửa Sản phẩm (ID: ' + p.id + ')';
+
+            document.getElementById('form-action-title').textContent = 'Sửa Sản phẩm (ID: ' + p.id + ')';
+            document.getElementById('save-btn').textContent = 'Cập nhật';
+            document.getElementById('cancel-btn').style.display = 'block';
         }
 
         function resetForm() {
@@ -364,7 +570,10 @@
             document.getElementById('wholesale_price').value = '';
             document.getElementById('retail_price').value = '';
             document.getElementById('quantity').value = '';
-            document.querySelector('.form-section h2').textContent = 'Hành động Sản phẩm';
+
+            document.getElementById('form-action-title').textContent = 'Hành động Sản phẩm';
+            document.getElementById('save-btn').textContent = 'Lưu Sản phẩm';
+            document.getElementById('cancel-btn').style.display = 'none';
         }
 
         async function deleteProduct(id) {
@@ -374,7 +583,12 @@
             }
         }
 
-        window.onload = loadProducts;
+        window.onload = checkAuth;
     </script>
 </body>
+
+</html>
+</script>
+</body>
+
 </html>
